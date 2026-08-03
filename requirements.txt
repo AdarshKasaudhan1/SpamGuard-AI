@@ -1,0 +1,17 @@
+# ── Core web framework ────────────────────────────────────────
+flask>=3.0.0
+werkzeug>=3.0.0
+
+# ── Machine learning ──────────────────────────────────────────
+scikit-learn>=1.4.0
+joblib>=1.3.0
+pandas>=2.1.0
+numpy>=1.26.0
+
+# ── OCR engines (install at least one) ───────────────────────
+# Option A — EasyOCR (recommended, no extra binary needed)
+easyocr>=1.7.0
+
+# Option B — Tesseract wrapper (also install the system binary)
+# pytesseract>=0.3.10
+# Pillow>=10.0.0
