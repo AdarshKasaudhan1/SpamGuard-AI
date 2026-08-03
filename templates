@@ -1,1 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpamGuard AI — Multimodal Spam Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🛡️</span>
+        <div class="logo-text">
+          <span class="logo-title">SpamGuard</span>
+          <span class="logo-badge">AI</span>
+        </div>
+      </div>
+      <p class="header-tagline">Multimodal Spam Detection</p>
+    </div>
+  </header>
+
+  <!-- ── HERO STRIP ── -->
+  <section class="hero">
+    <div class="hero-pill">✨ Powered by TF-IDF + Naive Bayes</div>
+    <h1 class="hero-title">Detect Spam Instantly</h1>
+    <p class="hero-sub">Paste text or upload an image — our AI classifies spam in milliseconds with ~98% accuracy.</p>
+    <div class="hero-stats">
+      <div class="stat-chip">
+        <span class="stat-val">~98%</span>
+        <span class="stat-lbl">Accuracy</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-chip">
+        <span class="stat-val">&lt;1ms</span>
+        <span class="stat-lbl">Inference</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-chip">
+        <span class="stat-val">5.5k</span>
+        <span class="stat-lbl">Trained On</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="main">
+
+    <!-- Row 1: Text + Image cards -->
+    <div class="grid-two">
+
+      <!-- TEXT ANALYSIS CARD -->
+      <div class="card card--blue">
+        <div class="card-header">
+          <div class="card-icon-wrap icon-wrap--blue">💬</div>
+          <div>
+            <h2 class="card-title">Text Analysis</h2>
+            <p class="card-subtitle">Paste any SMS or email message</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="textInput">Message Content</label>
+          <textarea
+            id="textInput"
+            class="form-textarea"
+            rows="6"
+            placeholder="e.g. Congratulations! You've won a FREE iPhone. Click here to claim now…"
+          ></textarea>
+        </div>
+
+        <div class="char-count-row">
+          <span id="charCount" class="char-count">0 characters</span>
+          <button class="btn-clear" id="clearText" title="Clear text">✕ Clear</button>
+        </div>
+
+        <button class="btn-primary" id="analyzeBtn">
+          <span class="btn-icon">🔍</span>
+          <span>Analyse Text</span>
+          <span class="btn-ripple"></span>
+        </button>
+      </div>
+
+      <!-- IMAGE OCR CARD -->
+      <div class="card card--purple">
+        <div class="card-header">
+          <div class="card-icon-wrap icon-wrap--purple">🖼️</div>
+          <div>
+            <h2 class="card-title">Image OCR Scan</h2>
+            <p class="card-subtitle">Upload a screenshot or photo</p>
+          </div>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-icon">📂</div>
+          <p class="drop-primary">Drop image here</p>
+          <p class="drop-secondary">or click to browse</p>
+          <p class="drop-formats">PNG, JPG, JPEG, GIF, BMP, WEBP, TIFF</p>
+          <input type="file" id="imageInput" accept="image/*" hidden />
+        </div>
+
+        <div class="image-preview-wrap" id="imagePreviewWrap" style="display:none;">
+          <img id="imagePreview" class="image-preview" alt="Preview" />
+          <button class="btn-remove-img" id="removeImage" title="Remove image">✕</button>
+        </div>
+
+        <button class="btn-primary btn-purple" id="scanImageBtn" disabled>
+          <span class="btn-icon">🔬</span>
+          <span>Scan Image</span>
+          <span class="btn-ripple"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- RESULT CARD -->
+    <div class="card card--green result-card" id="resultSection" style="display:none;">
+      <div class="card-header">
+        <div class="card-icon-wrap icon-wrap--green">📊</div>
+        <div>
+          <h2 class="card-title">Analysis Result</h2>
+          <p class="card-subtitle">AI classification output</p>
+        </div>
+      </div>
+
+      <div class="result-body">
+        <!-- Top row: verdict + gauge -->
+        <div class="result-top-row">
+          <!-- Verdict badge -->
+          <div class="verdict-wrap">
+            <div class="verdict-badge" id="verdictBadge">
+              <span class="verdict-emoji" id="verdictEmoji">🔴</span>
+              <span class="verdict-label" id="verdictLabel">SPAM</span>
+            </div>
+            <div class="confidence-pill" id="confidencePill">97.4% confident</div>
+          </div>
+          <!-- Circular gauge -->
+          <div class="gauge-wrap">
+            <svg class="gauge-svg" viewBox="0 0 80 80">
+              <circle class="gauge-track" cx="40" cy="40" r="30" />
+              <circle class="gauge-fill" id="gaugeFill" cx="40" cy="40" r="30"
+                stroke-dasharray="188.5" stroke-dashoffset="188.5" />
+            </svg>
+            <div class="gauge-center">
+              <span class="gauge-pct" id="gaugePct">0%</span>
+              <span class="gauge-lbl">spam</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meter -->
+        <div class="meter-section">
+          <div class="meter-labels">
+            <span class="meter-lbl lbl-safe">✅ Safe</span>
+            <span class="meter-lbl lbl-spam">🚫 Spam</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill" id="spamMeter" style="width:0%"></div>
+            <div class="meter-thumb" id="meterThumb" style="left:0%"></div>
+          </div>
+          <div class="meter-values">
+            <span id="hamProbDisplay">Ham: 0%</span>
+            <span id="spamProbDisplay">Spam: 0%</span>
+          </div>
+        </div>
+
+        <!-- Extracted text -->
+        <div class="extracted-section">
+          <p class="extracted-label">Analysed Text</p>
+          <div class="extracted-box" id="extractedText">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCAN HISTORY CARD -->
+    <div class="card card--yellow">
+      <div class="card-header">
+        <div class="card-icon-wrap icon-wrap--yellow">🕑</div>
+        <div>
+          <h2 class="card-title">Scan History</h2>
+          <p class="card-subtitle">Last 5 results (stored locally)</p>
+        </div>
+        <button class="btn-ghost" id="clearHistory">Clear</button>
+      </div>
+
+      <div id="historyList" class="history-list">
+        <div class="history-empty">
+          <span class="history-empty-icon">📭</span>
+          <p>No scans yet — run your first analysis above!</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── LOADING OVERLAY ── -->
+  <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+    <div class="loading-card">
+      <div class="loading-logo">🛡️</div>
+      <div class="dot-loader">
+        <span></span><span></span><span></span>
+      </div>
+      <p class="loading-text" id="loadingText">Analysing message…</p>
+    </div>
+  </div>
+
+  <!-- ── TOAST ── -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ── SCRIPT ── -->
+  <script>
+    /* ── DOM refs ──────────────────────────────────────────────────────────── */
+    const textInput        = document.getElementById('textInput');
+    const charCount        = document.getElementById('charCount');
+    const clearTextBtn     = document.getElementById('clearText');
+    const analyzeBtn       = document.getElementById('analyzeBtn');
+    const imageInput       = document.getElementById('imageInput');
+    const dropZone         = document.getElementById('dropZone');
+    const imagePreviewWrap = document.getElementById('imagePreviewWrap');
+    const imagePreview     = document.getElementById('imagePreview');
+    const removeImageBtn   = document.getElementById('removeImage');
+    const scanImageBtn     = document.getElementById('scanImageBtn');
+    const resultSection    = document.getElementById('resultSection');
+    const verdictBadge     = document.getElementById('verdictBadge');
+    const verdictEmoji     = document.getElementById('verdictEmoji');
+    const verdictLabel     = document.getElementById('verdictLabel');
+    const confidencePill   = document.getElementById('confidencePill');
+    const spamMeter        = document.getElementById('spamMeter');
+    const meterThumb       = document.getElementById('meterThumb');
+    const hamProbDisplay   = document.getElementById('hamProbDisplay');
+    const spamProbDisplay  = document.getElementById('spamProbDisplay');
+    const extractedText    = document.getElementById('extractedText');
+    const historyList      = document.getElementById('historyList');
+    const loadingOverlay   = document.getElementById('loadingOverlay');
+    const loadingText      = document.getElementById('loadingText');
+    const toastEl          = document.getElementById('toast');
+    const clearHistoryBtn  = document.getElementById('clearHistory');
+
+    /* ── Char counter ──────────────────────────────────────────────────────── */
+    textInput.addEventListener('input', () => {
+      const n = textInput.value.length;
+      charCount.textContent = `${n} character${n !== 1 ? 's' : ''}`;
+    });
+
+    clearTextBtn.addEventListener('click', () => {
+      textInput.value = '';
+      charCount.textContent = '0 characters';
+      textInput.focus();
+    });
+
+    /* ── Drop zone ─────────────────────────────────────────────────────────── */
+    dropZone.addEventListener('click', () => imageInput.click());
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('drag-active');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-active'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-active');
+      const file = e.dataTransfer.files[0];
+      if (file) handleImageFile(file);
+    });
+
+    imageInput.addEventListener('change', () => {
+      if (imageInput.files[0]) handleImageFile(imageInput.files[0]);
+    });
+
+    function handleImageFile(file) {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        imagePreview.src = ev.target.result;
+        dropZone.style.display = 'none';
+        imagePreviewWrap.style.display = 'block';
+        scanImageBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    removeImageBtn.addEventListener('click', () => {
+      imageInput.value = '';
+      imagePreviewWrap.style.display = 'none';
+      dropZone.style.display = 'flex';
+      scanImageBtn.disabled = true;
+    });
+
+    /* ── Toast ─────────────────────────────────────────────────────────────── */
+    function showToast(msg, type = 'error') {
+      toastEl.textContent = msg;
+      toastEl.className = `toast toast--${type} toast--visible`;
+      setTimeout(() => toastEl.classList.remove('toast--visible'), 3500);
+    }
+
+    /* ── Loading ────────────────────────────────────────────────────────────── */
+    function setLoading(visible, msg = 'Analysing…') {
+      loadingText.textContent = msg;
+      loadingOverlay.style.display = visible ? 'flex' : 'none';
+    }
+
+    /* ── Render result ──────────────────────────────────────────────────────── */
+    const gaugeFill = document.getElementById('gaugeFill');
+    const gaugePct  = document.getElementById('gaugePct');
+    const CIRCUMFERENCE = 188.5;
+
+    function renderResult(data) {
+      const isSpam = data.label === 'spam';
+
+      verdictBadge.className = 'verdict-badge ' + (isSpam ? 'verdict--spam' : 'verdict--ham');
+      verdictEmoji.textContent = isSpam ? '🚨' : '✅';
+      verdictLabel.textContent = isSpam ? 'SPAM' : 'SAFE';
+      confidencePill.textContent = `${data.confidence}% confident`;
+      confidencePill.className = 'confidence-pill ' + (isSpam ? 'pill--spam' : 'pill--safe');
+
+      // Animate meter + gauge
+      setTimeout(() => {
+        spamMeter.style.width = data.spam_prob + '%';
+        meterThumb.style.left = `calc(${data.spam_prob}% - 8px)`;
+        const offset = CIRCUMFERENCE - (data.spam_prob / 100) * CIRCUMFERENCE;
+        gaugeFill.style.strokeDashoffset = offset;
+        gaugeFill.style.stroke = isSpam ? '#EF4444' : '#27AE60';
+        gaugePct.textContent = Math.round(data.spam_prob) + '%';
+      }, 80);
+
+      hamProbDisplay.textContent  = `Ham: ${data.ham_prob}%`;
+      spamProbDisplay.textContent = `Spam: ${data.spam_prob}%`;
+
+      extractedText.textContent = data.extracted_text || '—';
+
+      resultSection.style.display = 'block';
+      setTimeout(() => resultSection.classList.add('result-visible'), 10);
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      saveHistory(data);
+      renderHistory();
+    }
+
+    /* ── Text analysis ──────────────────────────────────────────────────────── */
+    analyzeBtn.addEventListener('click', async () => {
+      const text = textInput.value.trim();
+      if (!text) { showToast('Please enter some text to analyse.', 'warning'); return; }
+
+      setLoading(true, 'Analysing message…');
+      try {
+        const res  = await fetch('/predict-text', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ text }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Server error');
+        renderResult(data);
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    /* ── Image scan ─────────────────────────────────────────────────────────── */
+    scanImageBtn.addEventListener('click', async () => {
+      const file = imageInput.files[0];
+      if (!file) { showToast('Please select an image first.', 'warning'); return; }
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      setLoading(true, 'Running OCR + AI scan…');
+      try {
+        const res  = await fetch('/predict-image', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Server error');
+        renderResult(data);
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    /* ── History ─────────────────────────────────────────────────────────────── */
+    function saveHistory(data) {
+      let history = JSON.parse(localStorage.getItem('spamguard_history') || '[]');
+      history.unshift({
+        label:      data.label,
+        confidence: data.confidence,
+        spam_prob:  data.spam_prob,
+        text:       (data.extracted_text || '').slice(0, 80),
+        ts:         new Date().toLocaleTimeString(),
+      });
+      history = history.slice(0, 5);
+      localStorage.setItem('spamguard_history', JSON.stringify(history));
+    }
+
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem('spamguard_history') || '[]');
+      if (!history.length) {
+        historyList.innerHTML = `
+          <div class="history-empty">
+            <span class="history-empty-icon">📭</span>
+            <p>No scans yet — run your first analysis above!</p>
+          </div>`;
+        return;
+      }
+      historyList.innerHTML = history.map((item, i) => `
+        <div class="history-item ${item.label === 'spam' ? 'item--spam' : 'item--ham'}" style="animation-delay:${i * 60}ms">
+          <div class="item-badge">${item.label === 'spam' ? '🚨' : '✅'}</div>
+          <div class="item-body">
+            <p class="item-text">${escapeHtml(item.text)}${item.text.length >= 80 ? '…' : ''}</p>
+            <div class="item-meta">
+              <span class="item-label ${item.label === 'spam' ? 'lbl--spam' : 'lbl--ham'}">${item.label.toUpperCase()}</span>
+              <span class="item-conf">${item.confidence}% confidence</span>
+              <span class="item-time">${item.ts}</span>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+      localStorage.removeItem('spamguard_history');
+      renderHistory();
+    });
+
+    // Init
+    renderHistory();
+  </script>
+</body>
+</html>
 
