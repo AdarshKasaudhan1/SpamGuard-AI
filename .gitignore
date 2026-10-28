@@ -1,0 +1,42 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+env/
+.venv/
+ENV/
+
+# Environment variables & secrets
+.env
+.env.*
+*.secret
+
+# IDEs & Editor configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test & coverage caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Downloaded raw dataset archives and temp files
+data/
+*.tmp
+*.log
+
+# Local large report & generation drafts (root level only)
+/SpamGuard_Report_Final.docx
+/Gemini_Generated_Image_*.png
+/Picture*.png

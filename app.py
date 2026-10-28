@@ -9,16 +9,28 @@ Routes:
   POST /predict-image   → Extracts text via OCR then classifies
 """
 
-import os
-import re
 import io
 import logging
-import tempfile
+import os
+import sys
+from typing import Optional
 
 import joblib
-import numpy as np
-from flask import Flask, request, jsonify, render_template
-from werkzeug.utils import secure_filename
+from flask import Flask, jsonify, render_template, request
+
+from preprocess import clean_text
+
+# Reconfigure stdout/stderr to UTF-8 for Windows consoles
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -28,21 +40,58 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
 logger = logging.getLogger(__name__)
 
 # ── Load persisted ML artefacts ───────────────────────────────────────────────
-MODEL_PATH      = os.path.join("model", "spam_model.joblib")
+MODEL_PATH = os.path.join("model", "spam_model.joblib")
 VECTORIZER_PATH = os.path.join("model", "vectorizer.joblib")
 
-try:
-    model      = joblib.load(MODEL_PATH)
-    vectorizer = joblib.load(VECTORIZER_PATH)
-    logger.info("✅  ML model and vectorizer loaded successfully.")
-except FileNotFoundError:
-    logger.error(
-        "❌  Model files not found. Please run `python train_model.py` first."
-    )
-    model = vectorizer = None
+model = None
+vectorizer = None
+
+
+def load_model_artifacts():
+    """Load or reload model and vectorizer artifacts from disk."""
+    global model, vectorizer
+    try:
+        model = joblib.load(MODEL_PATH)
+        vectorizer = joblib.load(VECTORIZER_PATH)
+        logger.info("✅  ML model and vectorizer loaded successfully.")
+        return True
+    except FileNotFoundError:
+        logger.error(
+            "❌  Model files not found. Please run `python train_model.py` first."
+        )
+        model = vectorizer = None
+        return False
+
+
+# Initial load at startup
+load_model_artifacts()
 
 # Allowed image extensions for the OCR route
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff"}
+
+# Global singleton EasyOCR reader cache
+_easyocr_reader = None
+
+
+def get_easyocr_reader():
+    """
+    Lazy-initialize and return the cached singleton EasyOCR Reader.
+    Avoids re-instantiating PyTorch models and reloading weights on every image request.
+    """
+    global _easyocr_reader
+    if _easyocr_reader is None:
+        try:
+            import easyocr
+
+            logger.info("Initializing EasyOCR reader (cached singleton)...")
+            _easyocr_reader = easyocr.Reader(["en"], gpu=False, verbose=False)
+            logger.info("✅ EasyOCR reader initialized and cached.")
+        except ImportError:
+            raise RuntimeError("easyocr not installed. Run: pip install easyocr")
+        except Exception as exc:
+            logger.error("Failed to initialize EasyOCR reader: %s", exc)
+            raise RuntimeError(f"EasyOCR initialization failed: {exc}")
+    return _easyocr_reader
 
 
 # ── Helper functions ───────────────────────────────────────────────────────────
@@ -51,77 +100,52 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def clean_text(text):
-    text = text.lower()
-
-    # Replace URLs with token
-    text = re.sub(r"http\S+|www\S+", " URL ", text)
-
-    # Replace phone numbers
-    text = re.sub(r"\b\d{10,}\b", " PHONE ", text)
-
-    # Replace numbers
-    text = re.sub(r"\d+", " NUMBER ", text)
-
-    # Keep useful symbols (₹ $ % !)
-    text = re.sub(r"[^a-z0-9₹$%!\s]", " ", text)
-
-    # Remove extra spaces
-    text = re.sub(r"\s+", " ", text).strip()
-
-    return text
-
-
 def classify(text: str) -> dict:
     """
-    Run the spam classifier on pre-cleaned text.
+    Run the spam classifier on text using the shared clean_text pipeline.
 
     Returns a dict with:
       - label       : "spam" | "ham"
       - confidence  : float 0-100 (probability of the predicted class)
       - spam_prob   : float 0-100 (raw spam probability – drives the meter)
+      - ham_prob    : float 0-100 (raw ham probability)
     """
+    global model, vectorizer
     if model is None or vectorizer is None:
-        raise RuntimeError("Model not loaded. Run train_model.py first.")
+        if not load_model_artifacts():
+            raise RuntimeError("Model not loaded. Run train_model.py first.")
 
-    cleaned   = clean_text(text)
-    features  = vectorizer.transform([cleaned])
+    cleaned = clean_text(text)
+    features = vectorizer.transform([cleaned])
 
     # predict_proba returns [P(ham), P(spam)]
-    proba     = model.predict_proba(features)[0]
+    proba = model.predict_proba(features)[0]
     spam_prob = float(proba[1]) * 100
-    ham_prob  = float(proba[0]) * 100
+    ham_prob = float(proba[0]) * 100
 
-    label      = "spam" if spam_prob > 50 else "ham"
+    label = "spam" if spam_prob > 50 else "ham"
     confidence = spam_prob if label == "spam" else ham_prob
 
     return {
-        "label":      label,
+        "label": label,
         "confidence": round(confidence, 2),
-        "spam_prob":  round(spam_prob, 2),
-        "ham_prob":   round(ham_prob, 2),
+        "spam_prob": round(spam_prob, 2),
+        "ham_prob": round(ham_prob, 2),
     }
 
 
 def extract_text_easyocr(image_bytes: bytes) -> str:
     """
-    Use EasyOCR to extract text from raw image bytes.
-    EasyOCR is GPU-optional and handles a wide variety of fonts well.
+    Use cached EasyOCR singleton to extract text from raw image bytes.
     """
-    try:
-        import easyocr
-        import numpy as np
-        from PIL import Image
+    reader = get_easyocr_reader()
+    import numpy as np
+    from PIL import Image
 
-        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        img_array = np.array(image)
-
-        # Initialise reader (downloads model weights on first run)
-        reader = easyocr.Reader(["en"], gpu=False, verbose=False)
-        results = reader.readtext(img_array, detail=0)
-        return " ".join(results)
-    except ImportError:
-        raise RuntimeError("easyocr not installed. Run: pip install easyocr")
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    img_array = np.array(image)
+    results = reader.readtext(img_array, detail=0)
+    return " ".join(results)
 
 
 def extract_text_tesseract(image_bytes: bytes) -> str:
@@ -143,13 +167,28 @@ def extract_text_tesseract(image_bytes: bytes) -> str:
 
 def extract_text_from_image(image_bytes: bytes) -> str:
     """
-    Try EasyOCR first; fall back to Tesseract if EasyOCR is unavailable.
+    Try EasyOCR first; fall back to Tesseract if EasyOCR is unavailable or encounters an error.
     """
     try:
         return extract_text_easyocr(image_bytes)
-    except RuntimeError:
-        logger.warning("EasyOCR unavailable – falling back to Tesseract.")
-        return extract_text_tesseract(image_bytes)
+    except Exception as exc:
+        logger.warning(
+            "EasyOCR extraction failed (%s) – falling back to Tesseract.", exc
+        )
+        try:
+            return extract_text_tesseract(image_bytes)
+        except Exception as tess_exc:
+            logger.error("Tesseract fallback also failed: %s", tess_exc)
+            raise RuntimeError(
+                f"Image OCR failed on both EasyOCR and Tesseract: {exc}"
+            )
+
+
+# ── Error Handlers ─────────────────────────────────────────────────────────────
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    """Handle files exceeding the 10 MB limit."""
+    return jsonify({"error": "File size exceeds the 10 MB limit."}), 413
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
@@ -168,17 +207,22 @@ def predict_text():
     Response (JSON):      { label, confidence, spam_prob, ham_prob, extracted_text }
     """
     try:
-        payload = request.get_json(force=True)
-        if not payload or "text" not in payload:
+        payload = request.get_json(silent=True)
+        if not payload or not isinstance(payload, dict) or "text" not in payload:
             return jsonify({"error": "Missing 'text' field in request body."}), 400
 
-        text = payload["text"].strip()
-        if not text:
+        text = payload.get("text")
+        if text is None or not str(text).strip():
             return jsonify({"error": "Text cannot be empty."}), 400
 
+        text = str(text).strip()
         result = classify(text)
         result["extracted_text"] = text
-        logger.info("Text prediction → %s (%.1f%%)", result["label"], result["spam_prob"])
+        logger.info(
+            "Text prediction → %s (%.1f%% spam prob)",
+            result["label"],
+            result["spam_prob"],
+        )
         return jsonify(result)
 
     except RuntimeError as exc:
@@ -206,23 +250,36 @@ def predict_image():
             return jsonify({"error": "No file selected."}), 400
 
         if not allowed_file(file.filename):
-            return jsonify({
-                "error": f"Unsupported file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
-            }), 415
+            return jsonify(
+                {
+                    "error": (
+                        f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+                    )
+                }
+            ), 415
 
         image_bytes = file.read()
+        if not image_bytes:
+            return jsonify({"error": "Uploaded file is empty."}), 400
 
         # ── OCR ───────────────────────────────────────────────────────────────
         extracted_text = extract_text_from_image(image_bytes)
-        if not extracted_text.strip():
-            return jsonify({"error": "Could not extract any text from the image."}), 422
+        if not extracted_text or not extracted_text.strip():
+            return (
+                jsonify({"error": "Could not extract any text from the image."}),
+                422,
+            )
 
         logger.info("OCR extracted: %.80s …", extracted_text.replace("\n", " "))
 
         # ── Classification ────────────────────────────────────────────────────
         result = classify(extracted_text)
         result["extracted_text"] = extracted_text.strip()
-        logger.info("Image prediction → %s (%.1f%%)", result["label"], result["spam_prob"])
+        logger.info(
+            "Image prediction → %s (%.1f%% spam prob)",
+            result["label"],
+            result["spam_prob"],
+        )
         return jsonify(result)
 
     except RuntimeError as exc:
@@ -235,4 +292,7 @@ def predict_image():
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() in ("true", "1")
+    app.run(debug=debug, host=host, port=port)

@@ -10,7 +10,7 @@ Run this script once before starting the Flask app:
 """
 
 import os
-import re
+import sys
 import urllib.request
 import zipfile
 import pandas as pd
@@ -18,8 +18,21 @@ import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score
-from sklearn.pipeline import Pipeline
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
+
+from preprocess import clean_text
+
+# Reconfigure stdout/stderr to UTF-8 for Windows consoles
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 
 # ── Configuration ─────────────────────────────────────────────────────────────
@@ -47,27 +60,6 @@ def download_dataset() -> None:
         print("✅  Dataset already present – skipping download.")
 
 
-def clean_text(text):
-    text = text.lower()
-
-    # Replace URLs with token
-    text = re.sub(r"http\S+|www\S+", " URL ", text)
-
-    # Replace phone numbers
-    text = re.sub(r"\b\d{10,}\b", " PHONE ", text)
-
-    # Replace numbers
-    text = re.sub(r"\d+", " NUMBER ", text)
-
-    # Keep useful symbols (₹ $ % !)
-    text = re.sub(r"[^a-z0-9₹$%!\s]", " ", text)
-
-    # Remove extra spaces
-    text = re.sub(r"\s+", " ", text).strip()
-
-    return text
-
-
 def load_dataset() -> pd.DataFrame:
     """Read the tab-separated SMS Spam Collection into a DataFrame."""
     df = pd.read_csv(
@@ -83,19 +75,18 @@ def load_dataset() -> pd.DataFrame:
     return df
 
 
-def train_and_save_model(df: pd.DataFrame) -> None:
+def train_and_save_model(df: pd.DataFrame) -> dict:
     """
     Train a TF-IDF + Multinomial Naive Bayes pipeline.
 
     Why Multinomial NB?
     • Naturally suited to text classification with discrete, non-negative features.
     • Fast to train even on large corpora.
-    • Surprisingly competitive accuracy on spam detection tasks.
+    • Competitive accuracy on spam detection tasks with low latency.
 
     Why TF-IDF instead of raw counts?
-    • Down-weights words that appear in nearly every message (e.g., "the", "is"),
-      which have low discriminative power.
-    • Up-weights rare but characteristic spam tokens (e.g., "free", "winner").
+    • Down-weights words appearing in nearly every message.
+    • Up-weights rare but characteristic spam tokens (e.g. 'dollar', 'rupee', 'free').
     """
     X = df["clean_message"]
     y = df["label_enc"]
@@ -105,16 +96,16 @@ def train_and_save_model(df: pd.DataFrame) -> None:
     )
 
     # ── Vectorizer ────────────────────────────────────────────────────────────
-    # ngram_range=(1, 2)  captures both unigrams AND bigrams ("free prize")
-    # max_features limits vocabulary size to prevent overfitting on noise
+    # ngram_range=(1, 2) captures unigrams AND bigrams ("free dollar", "rupee win")
+    # sublinear_tf=True applies 1 + log(tf) scaling to dampen frequent terms
     vectorizer = TfidfVectorizer(
         ngram_range=(1, 2),
         max_features=10_000,
-        sublinear_tf=True,      # apply log(1 + tf) to dampen high-frequency terms
+        sublinear_tf=True,
     )
 
     # ── Classifier ────────────────────────────────────────────────────────────
-    # alpha=0.1 (Laplace smoothing) works better than the default 1.0 here
+    # alpha=0.1 (Laplace smoothing) works better than default 1.0 for sparse spam text
     model = MultinomialNB(alpha=0.1)
 
     # Fit vectorizer on training data, transform both splits
@@ -126,7 +117,13 @@ def train_and_save_model(df: pd.DataFrame) -> None:
     # ── Evaluation ────────────────────────────────────────────────────────────
     y_pred = model.predict(X_test_vec)
     acc    = accuracy_score(y_test, y_pred)
+    cm     = confusion_matrix(y_test, y_pred)
+    report = classification_report(y_test, y_pred, target_names=["Ham", "Spam"], output_dict=True)
+
     print(f"\n📊  Test Accuracy : {acc * 100:.2f}%")
+    print("\nConfusion Matrix:")
+    print(f"  True Ham: {cm[0][0]} | False Spam: {cm[0][1]}")
+    print(f"  False Ham: {cm[1][0]} | True Spam: {cm[1][1]}")
     print("\n" + classification_report(y_test, y_pred, target_names=["Ham", "Spam"]))
 
     # ── Persist artifacts ─────────────────────────────────────────────────────
@@ -135,6 +132,12 @@ def train_and_save_model(df: pd.DataFrame) -> None:
     joblib.dump(vectorizer, VECTORIZER_PATH)
     print(f"💾  Model saved     → {MODEL_PATH}")
     print(f"💾  Vectorizer saved → {VECTORIZER_PATH}")
+
+    return {
+        "accuracy": acc,
+        "confusion_matrix": cm.tolist(),
+        "report": report,
+    }
 
 
 def main() -> None:

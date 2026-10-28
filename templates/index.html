@@ -15,7 +15,7 @@
   <header class="header">
     <div class="header-inner">
       <div class="logo">
-        <span class="logo-icon">🛡️</span>
+        <span class="logo-icon" aria-hidden="true">🛡️</span>
         <div class="logo-text">
           <span class="logo-title">SpamGuard</span>
           <span class="logo-badge">AI</span>
@@ -29,10 +29,10 @@
   <section class="hero">
     <div class="hero-pill">✨ Powered by TF-IDF + Naive Bayes</div>
     <h1 class="hero-title">Detect Spam Instantly</h1>
-    <p class="hero-sub">Paste text or upload an image — our AI classifies spam in milliseconds with ~98% accuracy.</p>
+    <p class="hero-sub">Paste text or upload an image — our AI classifies spam in milliseconds with ~98.8% accuracy.</p>
     <div class="hero-stats">
       <div class="stat-chip">
-        <span class="stat-val">~98%</span>
+        <span class="stat-val">~98.8%</span>
         <span class="stat-lbl">Accuracy</span>
       </div>
       <div class="stat-divider"></div>
@@ -57,7 +57,7 @@
       <!-- TEXT ANALYSIS CARD -->
       <div class="card card--blue">
         <div class="card-header">
-          <div class="card-icon-wrap icon-wrap--blue">💬</div>
+          <div class="card-icon-wrap icon-wrap--blue" aria-hidden="true">💬</div>
           <div>
             <h2 class="card-title">Text Analysis</h2>
             <p class="card-subtitle">Paste any SMS or email message</p>
@@ -71,16 +71,17 @@
             class="form-textarea"
             rows="6"
             placeholder="e.g. Congratulations! You've won a FREE iPhone. Click here to claim now…"
+            aria-describedby="charCount"
           ></textarea>
         </div>
 
         <div class="char-count-row">
           <span id="charCount" class="char-count">0 characters</span>
-          <button class="btn-clear" id="clearText" title="Clear text">✕ Clear</button>
+          <button class="btn-clear" id="clearText" title="Clear text" aria-label="Clear message text">✕ Clear</button>
         </div>
 
-        <button class="btn-primary" id="analyzeBtn">
-          <span class="btn-icon">🔍</span>
+        <button class="btn-primary" id="analyzeBtn" aria-label="Analyse text message">
+          <span class="btn-icon" aria-hidden="true">🔍</span>
           <span>Analyse Text</span>
           <span class="btn-ripple"></span>
         </button>
@@ -89,28 +90,28 @@
       <!-- IMAGE OCR CARD -->
       <div class="card card--purple">
         <div class="card-header">
-          <div class="card-icon-wrap icon-wrap--purple">🖼️</div>
+          <div class="card-icon-wrap icon-wrap--purple" aria-hidden="true">🖼️</div>
           <div>
             <h2 class="card-title">Image OCR Scan</h2>
             <p class="card-subtitle">Upload a screenshot or photo</p>
           </div>
         </div>
 
-        <div class="drop-zone" id="dropZone">
-          <div class="drop-icon">📂</div>
+        <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Upload image via file browser or drag and drop">
+          <div class="drop-icon" aria-hidden="true">📂</div>
           <p class="drop-primary">Drop image here</p>
           <p class="drop-secondary">or click to browse</p>
-          <p class="drop-formats">PNG, JPG, JPEG, GIF, BMP, WEBP, TIFF</p>
-          <input type="file" id="imageInput" accept="image/*" hidden />
+          <p class="drop-formats">PNG, JPG, JPEG, GIF, BMP, WEBP, TIFF (Max 10 MB)</p>
+          <input type="file" id="imageInput" accept="image/*" hidden aria-label="Image file input" />
         </div>
 
         <div class="image-preview-wrap" id="imagePreviewWrap" style="display:none;">
-          <img id="imagePreview" class="image-preview" alt="Preview" />
-          <button class="btn-remove-img" id="removeImage" title="Remove image">✕</button>
+          <img id="imagePreview" class="image-preview" alt="Uploaded message preview for OCR" />
+          <button class="btn-remove-img" id="removeImage" title="Remove image" aria-label="Remove uploaded image">✕</button>
         </div>
 
-        <button class="btn-primary btn-purple" id="scanImageBtn" disabled>
-          <span class="btn-icon">🔬</span>
+        <button class="btn-primary btn-purple" id="scanImageBtn" disabled aria-label="Scan image with OCR and analyze for spam">
+          <span class="btn-icon" aria-hidden="true">🔬</span>
           <span>Scan Image</span>
           <span class="btn-ripple"></span>
         </button>
@@ -118,9 +119,9 @@
     </div>
 
     <!-- RESULT CARD -->
-    <div class="card card--green result-card" id="resultSection" style="display:none;">
+    <div class="card card--green result-card" id="resultSection" style="display:none;" aria-live="polite">
       <div class="card-header">
-        <div class="card-icon-wrap icon-wrap--green">📊</div>
+        <div class="card-icon-wrap icon-wrap--green" aria-hidden="true">📊</div>
         <div>
           <h2 class="card-title">Analysis Result</h2>
           <p class="card-subtitle">AI classification output</p>
@@ -133,14 +134,14 @@
           <!-- Verdict badge -->
           <div class="verdict-wrap">
             <div class="verdict-badge" id="verdictBadge">
-              <span class="verdict-emoji" id="verdictEmoji">🔴</span>
+              <span class="verdict-emoji" id="verdictEmoji" aria-hidden="true">🔴</span>
               <span class="verdict-label" id="verdictLabel">SPAM</span>
             </div>
-            <div class="confidence-pill" id="confidencePill">97.4% confident</div>
+            <div class="confidence-pill" id="confidencePill">98.8% confident</div>
           </div>
           <!-- Circular gauge -->
           <div class="gauge-wrap">
-            <svg class="gauge-svg" viewBox="0 0 80 80">
+            <svg class="gauge-svg" viewBox="0 0 80 80" aria-label="Spam probability circular gauge">
               <circle class="gauge-track" cx="40" cy="40" r="30" />
               <circle class="gauge-fill" id="gaugeFill" cx="40" cy="40" r="30"
                 stroke-dasharray="188.5" stroke-dashoffset="188.5" />
@@ -158,7 +159,7 @@
             <span class="meter-lbl lbl-safe">✅ Safe</span>
             <span class="meter-lbl lbl-spam">🚫 Spam</span>
           </div>
-          <div class="meter-track">
+          <div class="meter-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="meterProgress">
             <div class="meter-fill" id="spamMeter" style="width:0%"></div>
             <div class="meter-thumb" id="meterThumb" style="left:0%"></div>
           </div>
@@ -179,17 +180,17 @@
     <!-- SCAN HISTORY CARD -->
     <div class="card card--yellow">
       <div class="card-header">
-        <div class="card-icon-wrap icon-wrap--yellow">🕑</div>
+        <div class="card-icon-wrap icon-wrap--yellow" aria-hidden="true">🕑</div>
         <div>
           <h2 class="card-title">Scan History</h2>
           <p class="card-subtitle">Last 5 results (stored locally)</p>
         </div>
-        <button class="btn-ghost" id="clearHistory">Clear</button>
+        <button class="btn-ghost" id="clearHistory" title="Clear scan history" aria-label="Clear scan history">Clear</button>
       </div>
 
       <div id="historyList" class="history-list">
         <div class="history-empty">
-          <span class="history-empty-icon">📭</span>
+          <span class="history-empty-icon" aria-hidden="true">📭</span>
           <p>No scans yet — run your first analysis above!</p>
         </div>
       </div>
@@ -198,9 +199,9 @@
   </main>
 
   <!-- ── LOADING OVERLAY ── -->
-  <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+  <div class="loading-overlay" id="loadingOverlay" style="display:none;" aria-live="assertive">
     <div class="loading-card">
-      <div class="loading-logo">🛡️</div>
+      <div class="loading-logo" aria-hidden="true">🛡️</div>
       <div class="dot-loader">
         <span></span><span></span><span></span>
       </div>
@@ -209,7 +210,7 @@
   </div>
 
   <!-- ── TOAST ── -->
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="alert" aria-live="assertive"></div>
 
   <!-- ── SCRIPT ── -->
   <script>
@@ -231,6 +232,7 @@
     const confidencePill   = document.getElementById('confidencePill');
     const spamMeter        = document.getElementById('spamMeter');
     const meterThumb       = document.getElementById('meterThumb');
+    const meterProgress    = document.getElementById('meterProgress');
     const hamProbDisplay   = document.getElementById('hamProbDisplay');
     const spamProbDisplay  = document.getElementById('spamProbDisplay');
     const extractedText    = document.getElementById('extractedText');
@@ -239,6 +241,9 @@
     const loadingText      = document.getElementById('loadingText');
     const toastEl          = document.getElementById('toast');
     const clearHistoryBtn  = document.getElementById('clearHistory');
+
+    // Selected image file holder (supports both file chooser and drag-and-drop)
+    let currentImageFile = null;
 
     /* ── Char counter ──────────────────────────────────────────────────────── */
     textInput.addEventListener('input', () => {
@@ -252,8 +257,14 @@
       textInput.focus();
     });
 
-    /* ── Drop zone ─────────────────────────────────────────────────────────── */
+    /* ── Drop zone & file selection ────────────────────────────────────────── */
     dropZone.addEventListener('click', () => imageInput.click());
+    dropZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        imageInput.click();
+      }
+    });
 
     dropZone.addEventListener('dragover', e => {
       e.preventDefault();
@@ -263,12 +274,23 @@
     dropZone.addEventListener('drop', e => {
       e.preventDefault();
       dropZone.classList.remove('drag-active');
-      const file = e.dataTransfer.files[0];
-      if (file) handleImageFile(file);
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) {
+        if (!file.type.startsWith('image/')) {
+          showToast('Please upload a valid image file.', 'warning');
+          return;
+        }
+        currentImageFile = file;
+        handleImageFile(file);
+      }
     });
 
     imageInput.addEventListener('change', () => {
-      if (imageInput.files[0]) handleImageFile(imageInput.files[0]);
+      const file = imageInput.files && imageInput.files[0];
+      if (file) {
+        currentImageFile = file;
+        handleImageFile(file);
+      }
     });
 
     function handleImageFile(file) {
@@ -283,20 +305,24 @@
     }
 
     removeImageBtn.addEventListener('click', () => {
+      currentImageFile = null;
       imageInput.value = '';
+      imagePreview.src = '';
       imagePreviewWrap.style.display = 'none';
       dropZone.style.display = 'flex';
       scanImageBtn.disabled = true;
     });
 
-    /* ── Toast ─────────────────────────────────────────────────────────────── */
+    /* ── Toast notifications ────────────────────────────────────────────────── */
+    let toastTimeout = null;
     function showToast(msg, type = 'error') {
+      clearTimeout(toastTimeout);
       toastEl.textContent = msg;
       toastEl.className = `toast toast--${type} toast--visible`;
-      setTimeout(() => toastEl.classList.remove('toast--visible'), 3500);
+      toastTimeout = setTimeout(() => toastEl.classList.remove('toast--visible'), 3500);
     }
 
-    /* ── Loading ────────────────────────────────────────────────────────────── */
+    /* ── Loading overlay ────────────────────────────────────────────────────── */
     function setLoading(visible, msg = 'Analysing…') {
       loadingText.textContent = msg;
       loadingOverlay.style.display = visible ? 'flex' : 'none';
@@ -315,6 +341,10 @@
       verdictLabel.textContent = isSpam ? 'SPAM' : 'SAFE';
       confidencePill.textContent = `${data.confidence}% confident`;
       confidencePill.className = 'confidence-pill ' + (isSpam ? 'pill--spam' : 'pill--safe');
+
+      if (meterProgress) {
+        meterProgress.setAttribute('aria-valuenow', Math.round(data.spam_prob));
+      }
 
       // Animate meter + gauge
       setTimeout(() => {
@@ -342,11 +372,15 @@
     /* ── Text analysis ──────────────────────────────────────────────────────── */
     analyzeBtn.addEventListener('click', async () => {
       const text = textInput.value.trim();
-      if (!text) { showToast('Please enter some text to analyse.', 'warning'); return; }
+      if (!text) {
+        showToast('Please enter some text to analyse.', 'warning');
+        textInput.focus();
+        return;
+      }
 
       setLoading(true, 'Analysing message…');
       try {
-        const res  = await fetch('/predict-text', {
+        const res = await fetch('/predict-text', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ text }),
@@ -363,15 +397,18 @@
 
     /* ── Image scan ─────────────────────────────────────────────────────────── */
     scanImageBtn.addEventListener('click', async () => {
-      const file = imageInput.files[0];
-      if (!file) { showToast('Please select an image first.', 'warning'); return; }
+      const file = currentImageFile || (imageInput.files && imageInput.files[0]);
+      if (!file) {
+        showToast('Please select or drop an image first.', 'warning');
+        return;
+      }
 
       const formData = new FormData();
       formData.append('image', file);
 
       setLoading(true, 'Running OCR + AI scan…');
       try {
-        const res  = await fetch('/predict-image', { method: 'POST', body: formData });
+        const res = await fetch('/predict-image', { method: 'POST', body: formData });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Server error');
         renderResult(data);
@@ -384,7 +421,12 @@
 
     /* ── History ─────────────────────────────────────────────────────────────── */
     function saveHistory(data) {
-      let history = JSON.parse(localStorage.getItem('spamguard_history') || '[]');
+      let history = [];
+      try {
+        history = JSON.parse(localStorage.getItem('spamguard_history') || '[]');
+      } catch (e) {
+        history = [];
+      }
       history.unshift({
         label:      data.label,
         confidence: data.confidence,
@@ -393,22 +435,31 @@
         ts:         new Date().toLocaleTimeString(),
       });
       history = history.slice(0, 5);
-      localStorage.setItem('spamguard_history', JSON.stringify(history));
+      try {
+        localStorage.setItem('spamguard_history', JSON.stringify(history));
+      } catch (e) {
+        console.warn('LocalStorage quota exceeded or unavailable', e);
+      }
     }
 
     function renderHistory() {
-      const history = JSON.parse(localStorage.getItem('spamguard_history') || '[]');
+      let history = [];
+      try {
+        history = JSON.parse(localStorage.getItem('spamguard_history') || '[]');
+      } catch (e) {
+        history = [];
+      }
       if (!history.length) {
         historyList.innerHTML = `
           <div class="history-empty">
-            <span class="history-empty-icon">📭</span>
+            <span class="history-empty-icon" aria-hidden="true">📭</span>
             <p>No scans yet — run your first analysis above!</p>
           </div>`;
         return;
       }
       historyList.innerHTML = history.map((item, i) => `
         <div class="history-item ${item.label === 'spam' ? 'item--spam' : 'item--ham'}" style="animation-delay:${i * 60}ms">
-          <div class="item-badge">${item.label === 'spam' ? '🚨' : '✅'}</div>
+          <div class="item-badge" aria-hidden="true">${item.label === 'spam' ? '🚨' : '✅'}</div>
           <div class="item-body">
             <p class="item-text">${escapeHtml(item.text)}${item.text.length >= 80 ? '…' : ''}</p>
             <div class="item-meta">
@@ -421,17 +472,23 @@
     }
 
     function escapeHtml(str) {
-      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     clearHistoryBtn.addEventListener('click', () => {
       localStorage.removeItem('spamguard_history');
       renderHistory();
+      showToast('Scan history cleared.', 'safe');
     });
 
-    // Init
+    // Initialize scan history on page load
     renderHistory();
   </script>
 </body>
 </html>
-
